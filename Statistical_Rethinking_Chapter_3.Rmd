@@ -1,0 +1,132 @@
+---
+title: "Statistical_Rethinking_Chapter_3"
+author: "Surya Dhulipala"
+date: "4/22/2021"
+output: html_document
+---
+
+```{r}
+# 3.1 sampling from a grid approximate posterior
+# Code 3.1 - 3.5
+library(rethinking)
+Pr_Positive_Vampire <- 0.95
+Pr_Positive_Mortal <- 0.01
+Pr_Vampire <- 0.001
+
+Pr_Positive <- Pr_Positive_Vampire * Pr_Vampire + 
+                   Pr_Positive_Mortal  * (1-Pr_Vampire)
+
+Pr_Vampire_Positive <- (Pr_Positive_Vampire * Pr_Vampire /Pr_Positive)
+print(Pr_Vampire_Positive)
+
+# use grid approximation to generate data
+p_grid <- seq (from = 0, to = 1, length.out = 1000)
+
+# Assume prior distribution is normal
+prob_p <- rep(1,1000)
+
+# Likelihood of each event occuring
+prob_data <- dbinom (6, size = 9, prob = p_grid )
+
+# Calculate posterior based on the prob_data and prior data
+posterior <- prob_data * prob_p
+
+# Generate Samples from posterior distribution
+samples <- sample(p_grid, prob = posterior, size = 1e4, replace = TRUE)
+
+plot(samples) # Figure 3.1 (left panel)
+dens(samples) # Figure 3.2 (right panel)
+```
+```{r}
+# 3.2 Sampling to summarize
+# R code 3.6 - 3.19
+# add up posterior probability where p <0.5
+sum( posterior[p_grid < 0.5])
+
+# add up sample probability where p <0.5
+sum ( samples < 0.5) / 1e4
+
+# add up sample probability where p > 0.5 and p < 0.75
+sum ( samples > 0.5 & samples < 0.75) / 1e4
+
+#---------Intervals of defined mass
+
+quantile(samples, 0.8)
+
+# Percentile Intervals
+quantile(samples, c(0.1,0.9))
+
+# use grid approximation to generate data
+p_grid <- seq (from = 0, to = 1, length.out = 1000)
+
+# Assume prior distribution is normal
+prior <- rep(1,1000)
+
+# Likelihood of each event occurring
+likelihood <- dbinom (3, size = 3, prob = p_grid )
+
+# Calculate posterior based on the prob_data and prior data
+posterior <- likelihood * prior
+
+posterior <- posterior / sum(posterior)
+
+# Generate Samples from posterior distribution
+samples <- sample(p_grid, prob = posterior, size = 1e4, replace = TRUE)
+
+plot(samples)
+dens(samples)
+
+PI(samples, prob = 0.5)
+
+HPDI(samples, prob = 0.5)
+
+# Calculate maximum  a posteriori (MAP) estimate using the posterior
+
+p_grid[which.max(posterior)]
+
+# Caluclate MAP from sampls
+
+chainmode( samples, adj = 0.01)
+
+
+mean (samples)
+median(samples)
+
+# Expected Loss (Weighted Average Loss) given a decison value (lets say its 0.5)
+sum ( posterior*abs(0.5-p_grid))
+
+#what if we want to calculate Expected Loss for every decision
+loss <- sapply (p_grid, function(d) sum(posterior*abs(d-p_grid)))
+
+# Find the parameter value that minimizes the loss
+p_grid [which.min(loss)]
+
+```
+
+```{r}
+# 3.3 Sampling to simulate prediction
+# R code 3.20 - 3.26
+
+dbinom (0:2 , size = 2, prob = 0.7)
+
+rbinom(1, size = 2, prob = 0.7)
+
+rbinom(10, size = 2, prob = 0.7)
+
+dummy_w <- rbinom( 1e5, size = 2, prob = 0.7)
+
+table(dummy_w)/1e5
+
+dummy_w <- rbinom( 1e5, size = 9, prob = 0.7)
+
+simplehist( dummy_w, xlab = "dummy water count")
+
+w <- rbinom(1e4, size = 9, prob = 0.1)
+dens(w)
+simplehist(w)
+
+w <- rbinom(1e4, size = 9, prob = samples)
+dens(w)
+simplehist(w)
+
+```
